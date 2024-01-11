@@ -1,0 +1,46 @@
+We will not be using the experimental approach.
+Computational model
+	aka the RAM model
+	a set of memory cells each of which stores one item of data
+	primitive operations (unit operations)
+		access to a memory cell (read or write)
+		basic arithmetic
+	each primitive operation takes one unit of time
+Pseudocode
+	Make sure that each line of your pseudocode is possible to execite in O(1)
+	once it is simplified then simply compute the lined of pseudocode for the time complexity
+Universal framework
+	we want a framework that is
+	1. Is independent of implementation
+Running time
+	Almost always assume the worst case possible.
+	The average case on sometimes.
+	The best case will almost never happen.
+Asymptotic analysis
+	aka Big Oh notation
+	ignore constant factors
+		f(n), 100f(n), 10^6 * f(n), are "equal"
+		RAM model introduces errors in constants
+		example:
+			alg 1: 5n^2 + 7n + 8
+			alg 2: 7n^2 + 5n + 9
+		simpifications of analysis
+	compares the growth rate of functions
+**	refer to slides for O(g(n)) = ...
+	f(n) = (sin(n) + 2) * n, g(n) = n
+	g(n) will always grow at a faster rate than f(n)
+	We assume that both functions will always be greater than or equal to 0 for all n
+	This professor does not know what he is teaching
+**	Example:	(refer to slides for in-depth example)
+		Prove that 3n^2 + 2n + 5 = O(n^2)
+		3n^2 + 2n + 5 <= c * n^2 for n >= ni
+		ni = 1
+			some gibberish
+		10n^2 = 3n^2 + 2n^2 + 5n^2
+		10n^2 >= 3n^2 + 2n + 5 for n >= 1
+Big Omega notation
+**	Refer to slides for Omega(g(n)) = ...
+	The meaning of this notation is that f(n) grows at the same rate or faster than g(n)
+Big Theta notation
+**	Look at the slides... again
+
