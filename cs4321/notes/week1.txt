@@ -18,6 +18,7 @@ Running time
 	The best case will almost never happen.
 Asymptotic analysis
 	aka Big Oh notation
+	The analogy: less than or equal to.
 	ignore constant factors
 		f(n), 100f(n), 10^6 * f(n), are "equal"
 		RAM model introduces errors in constants
@@ -39,8 +40,14 @@ Asymptotic analysis
 		10n^2 = 3n^2 + 2n^2 + 5n^2
 		10n^2 >= 3n^2 + 2n + 5 for n >= 1
 Big Omega notation
+	The analogy: greater than or equal to. 
 **	Refer to slides for Omega(g(n)) = ...
 	The meaning of this notation is that f(n) grows at the same rate or faster than g(n)
 Big Theta notation
 **	Look at the slides... again
+Theorem 1:
+	f(n) = O(g(n)) iff g(n) = Omega(f(n))
+	Intuition: "growth rate of f(n) is less than or equal to the growth rate of g(n)" if and only if "the growth rate of g(n) is greater than or equal to the growth rate of f(n)."
+
+	
 
