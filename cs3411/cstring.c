@@ -15,6 +15,6 @@ int mystrlenold(char *input) {
 
 int main() {
 	char *string = "Hello world!";
-	printf("String: %s Length: %d\n", string, mystrlenold(string));
+	printf("String: %s Length: %d\n", string, mystrlen(string));
 }
 
