@@ -24,7 +24,7 @@ int main()
     ip = & i_a;
 
     m = f (F_first, 0, (void *)200);           /* we really don't know how much it will take */
-    m = f (F_first, 0, 0);           /* we really don't know how much it will take */
+//    m = f (F_first, 0, 0);           /* we really don't know how much it will take */
     m = f (F_data_char, m,  (void *)"System programming class has ");
 
     f_a = 69.7;

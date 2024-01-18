@@ -13,23 +13,32 @@ void * f (int code, void * mem, void * data) {
 
     long long int z_data = (long long int)data;
 
+    void *p = 0;
+
     if (code == F_first) {
 	if((size_t)data != 0){
-	    printf("set pointer\n");
-	    return malloc((size_t)data);
+	    p =  malloc((size_t)data);
+	    *(short int *)p = 2;
+	    return (void *)p;
 	} else {
-	    printf("failed to set pointer\n");
-	    return (void *)0;
+	    return p;
 	}
     } else if (code == F_last) {
 	free(mem);
 	return (void *)0;
     }
-    char *p = (char *)mem;
-    printf("Current pointer: %p\n", p);
-    p = p + 2;
-    printf("new pointer: %p\n\n", p);
 
+    if(!mem){
+	printf("Initiallize mem!\n");
+	return (void *)0;
+    }
+
+    p = mem;
+
+    printf("Current pointer: %p\n", p);
+    printf("Offset: %d\n", *(short int *)p);
+    p = (void *)((char *)p + *(short int *)p);
+    printf("Moved pointer: %p\n\n", p);
 
     switch (code) {
 	case F_data_int:
