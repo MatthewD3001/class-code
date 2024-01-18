@@ -38,4 +38,5 @@ int main()
     m = f (F_data_char, m,  (void *)"\n");
 
     m = f (F_print, m, 0);
+    m = f (F_last, m, 0);
 }
