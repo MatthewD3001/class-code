@@ -29,7 +29,7 @@ int main()
 
     f_a = 69.7;
     m = f (F_data_float,  m,  (void *)fp);
-    m = f (F_data_char, m,  (void *)"registered ");
+    m = f (F_data_char, m,  (void *)" registered ");
     m = f (F_data_char, m,  (void *)"students in a ");
     m = f (F_data_char, m,  (void *)"classroom of ");
 

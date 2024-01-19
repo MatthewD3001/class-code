@@ -14,20 +14,41 @@
 #define	 TYPE_FLOAT	9
 
 void printmem(void *mem, void *p){
-    void *print = (char *)mem + 2;
-    while(print < p){
 
-	print = (char *)print + 1;
+    void *print = (char *)mem + 2;
+
+    while(print < p){
+	switch (*(char *)print) {
+	    case TYPE_INT:
+		print = (char *)print + 1;
+		printf("%d", *(int *)print);
+		print = (char *)print + sizeof((int *)print);
+		break;
+
+	    case TYPE_CHAR:
+		print = (char *)print + 1;
+		printf("%s", (char *)print);
+		print = (char *)print + (int)strlen((char *)print) + 1;
+		break;
+
+	    case TYPE_FLOAT:
+		print = (char *)print + 1;
+		printf("%f", *(float *)print);
+		print = (char *)print + sizeof((float *)print);
+		break;
+
+	    default:
+		printf("mem is invalid at this address: %p\n", print);
+		return;
+	}
     }
-    printf("\np pointer: %p\nprint pointer: %p\n", p, print);
     return;
 }
 
-void * f (int code, void * mem, void * data) {
-
-    //long long int z_data = (long long int)data;
+void *f(int code, void * mem, void * data) {
 
     void *p = 0;
+
     if (code == F_first) {
 	if((size_t)data != 0){
 	    p =  malloc((size_t)data);
@@ -47,62 +68,33 @@ void * f (int code, void * mem, void * data) {
     }
 
     p = mem;
-
-    printf("Current pointer: %p\n", p);
-    printf("Offset: %d\n", *(short int *)p);
-    p = (void *)((char *)p + *(short int *)p);
-    printf("Moved pointer: %p\n\n", p);
+    p = (char *)p + *(short int *)p;
 
     switch (code) {
 	case F_data_int:
-	    printf("Adding INT to mem!\n");
 	    *(char *)p = TYPE_INT;
 	    p = (char *)p + 1;
-	    p = (int *)data;
-
-	    //printf("What data holds: %d\n", *(int *)data);
-	    //printf("What mem holds: %d\n", *(int *)p);
-	    //printf("Size of data: %ld\n", sizeof((int *)data));
-	    //printf("Size of mem at location: %ld\n", sizeof((int *)p));
-
-	    *(short int *)mem += sizeof((int *)p);
-
+	    *(int *)p = *(int *)data;
+	    *(short int *)mem += sizeof((int *)p) + 1;
 	    break;
 
 	case F_data_char:
-	    printf("Adding CHAR to mem!\n");
 	    *(char *)p = TYPE_CHAR;
 	    p = (char *)p + 1;
-	    p = (char *)data;
-
-	    //printf("What data holds: %s\n", (char *)data);
-	    //printf("What mem holds: %s\n", (char *)p);
-	    //printf("Size of data: %ld\n", strlen((char *)data) + 1);
-	    //printf("Size of mem at location: %ld\n", strlen((char *)p) + 1);
-
-	    *(short int *)mem += strlen((char *)p) + 1;
-	    
+	    strcpy((char *)p, (char *)data);
+	    *(short int *)mem += strlen((char *)p) + 2;
 	    break;
 
 	case F_data_float: 
-	    printf("Adding FLOAT to mem!\n");
 	    *(char *)p = TYPE_FLOAT;
 	    p = (char *)p + 1;
-	    p = (float *)data;
-
-	    //printf("What data holds: %f\n", *(float *)data);
-	    //printf("What mem holds: %f\n", *(float *)p);
-	    //printf("Size of data: %ld\n", sizeof((float *)data));
-	    //printf("Size of mem at location: %ld\n", sizeof((float *)p));
-
-	    *(short int *)mem += sizeof((float *)p);
-
+	    *(float *)p = *(float *)data;
+	    *(short int *)mem += sizeof((float *)p) + 1;
 	    break;
 
 	case F_print:
 	    printmem(mem, p);
 	    break;
     }
-
     return (void *)mem;
 }
