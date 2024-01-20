@@ -65,12 +65,17 @@ void printmem(void *mem, void *p){
  * This is the primary function for creating, inserting, and parsing data within this data structure.
  * param code: This tells the function what type of action to do such as initiallize, close, insert, or print data.
  * param mem: This is the pointer to the current data structure if one exists.
- * param data:
+ * param data: Can contain any data type this function can use: int *, char *, float *
+ *	       Additionally can contain the number of bytes to allocate.
  */
-void* f(int code, void * mem, void * data) {
+void * f(int code, void * mem, void * data) {
 
-    void *p = 0;
+    void *p = 0;			// Main pointer to modify data in this data structure.
 
+    /**
+     * First function call, check data to know how much space to allocate.
+     * Allocate memory, set the first two bytes to empty data offset, return allocated pointer.
+     */
     if (code == F_first) {
 	if((size_t)data != 0){
 	    p =  malloc((size_t)data);
@@ -84,7 +89,7 @@ void* f(int code, void * mem, void * data) {
 	return p;
     }
 
-    if(!mem){
+    if(!mem){				// Make sure the user passed a valid pointer.
 	printf("Initiallize mem!\n");
 	return p;
     }
