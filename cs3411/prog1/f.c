@@ -9,14 +9,30 @@
 #define  F_data_char    4   /* Void * argument points to character string. */
 #define  F_data_float   5   /* Void * argument points to a float data value. */
 #define  F_print        6   /* Print the accumulated values. */
-#define	 TYPE_INT	7
-#define	 TYPE_CHAR	8
-#define	 TYPE_FLOAT	9
+#define	 TYPE_INT	7   // More legible name for the int type
+#define	 TYPE_CHAR	8   // More legible name for the char type
+#define	 TYPE_FLOAT	9   // More legible name for the float type
 
+/**
+ * This is a helper function to simply print out the contents of the mem pointer.
+ * param mem: This is the pointer for the whole data structure, pointing to it's first byte of data.
+ * pram p: This is the pointer to the end of the data structure so that the print knows when to stop.
+ */
 void printmem(void *mem, void *p){
 
-    void *print = (char *)mem + 2;
-
+    void *print = (char *)mem + 2;  // Skip the first two bytes as those contain the offset, not data.
+    
+    /**
+     * This loop continues until the printing pointer has reached the end of the data within mem.
+     *
+     * Inside is a switch statement which reads the first byte, this contains the type of the data stored in the following space.
+     *
+     * Each case first moves to the data segment of the chunk of memory.
+     * Then it properly prints the data stored depending on its type.
+     * Finally it increments the print pointer to the next type identifying byte.
+     *
+     * The default statement points out where data was stored improperly or this function was used improperly.
+     */
     while(print < p){
 	switch (*(char *)print) {
 	    case TYPE_INT:
@@ -45,7 +61,13 @@ void printmem(void *mem, void *p){
     return;
 }
 
-void *f(int code, void * mem, void * data) {
+/**
+ * This is the primary function for creating, inserting, and parsing data within this data structure.
+ * param code: This tells the function what type of action to do such as initiallize, close, insert, or print data.
+ * param mem: This is the pointer to the current data structure if one exists.
+ * param data:
+ */
+void* f(int code, void * mem, void * data) {
 
     void *p = 0;
 
@@ -68,8 +90,18 @@ void *f(int code, void * mem, void * data) {
     }
 
     p = mem;
-    p = (char *)p + *(short int *)p;
+    p = (char *)p + *(short int *)p;	// This reads the first two bytes for the short int which is equal to the number 
+					// of bytes needed to move in order to be at the first empty data location.
 
+    /**
+     * This switch statement takes the code passed to the function and loads the associated data properly.
+     *
+     * In each case it will first assign the first byte, already at the right location from line above,
+     * to the type that will be stored so it can be identified. Then it shifts by 1 byte and inserts the data.
+     *
+     * After this, each case will go back to the original pointer and reassign the first two bytes to contain
+     * the proper offset value with the new data inserted.
+     */
     switch (code) {
 	case F_data_int:
 	    *(char *)p = TYPE_INT;
