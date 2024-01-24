@@ -1,7 +1,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #define  F_first        1   /* This is the first call to the function. */
 #define  F_last         2   /* This is the last call to the function. Free the memory area. */
@@ -9,14 +8,39 @@
 #define  F_data_char    4   /* Void * argument points to character string. */
 #define  F_data_float   5   /* Void * argument points to a float data value. */
 #define  F_print        6   /* Print the accumulated values. */
-#define	 TYPE_INT	7   // More legible name for the int type
-#define	 TYPE_CHAR	8   // More legible name for the char type
-#define	 TYPE_FLOAT	9   // More legible name for the float type
+#define	 TYPE_INT	7   // More legible name for the int type.
+#define	 TYPE_CHAR	8   // More legible name for the char type.
+#define	 TYPE_FLOAT	9   // More legible name for the float type.
+
+/**
+ * This is a helper function to return the length of a string INCLUDING the null byte.
+ *
+ * Param input: this is the input char pointer for the beginning of a string.
+ */
+int mystrlen(char *input) {
+    char *begin = input;
+    while(*input++);
+    return input - begin;
+}
+
+/**
+ * This is a helper function to copy one string to another, note there are not saftey checks here. If the user passes
+ * a non null terminated string this will run indefinetily.
+ *
+ * Param target: this is the target pointer to be copied to.
+ * Param source: this is the source of the copied string.
+ */
+void mystrcpy(char *target, char *source) {
+    do *target++ = *source++;
+    while(*source != 0);
+    return;
+}
 
 /**
  * This is a helper function to simply print out the contents of the mem pointer.
- * param mem: This is the pointer for the whole data structure, pointing to it's first byte of data.
- * pram p: This is the pointer to the end of the data structure so that the print knows when to stop.
+ *
+ * Param mem: This is the pointer for the whole data structure, pointing to it's first byte of data.
+ * Param p: This is the pointer to the end of the data structure so that the print knows when to stop.
  */
 void printmem(void *mem, void *p){
 
@@ -44,7 +68,7 @@ void printmem(void *mem, void *p){
 	    case TYPE_CHAR:
 		print = (char *)print + 1;
 		printf("%s", (char *)print);
-		print = (char *)print + (int)strlen((char *)print) + 1;
+		print = (char *)print + mystrlen((char *)print);
 		break;
 
 	    case TYPE_FLOAT:
@@ -63,9 +87,10 @@ void printmem(void *mem, void *p){
 
 /**
  * This is the primary function for creating, inserting, and parsing data within this data structure.
- * param code: This tells the function what type of action to do such as initiallize, close, insert, or print data.
- * param mem: This is the pointer to the current data structure if one exists.
- * param data: Can contain any data type this function can use: int *, char *, float *
+ *
+ * Param code: This tells the function what type of action to do such as initiallize, close, insert, or print data.
+ * Param mem: This is the pointer to the current data structure if one exists.
+ * Param data: Can contain any data type this function can use: int *, char *, float *
  *	       Additionally can contain the number of bytes to allocate.
  */
 void * f(int code, void * mem, void * data) {
@@ -118,8 +143,8 @@ void * f(int code, void * mem, void * data) {
 	case F_data_char:
 	    *(char *)p = TYPE_CHAR;
 	    p = (char *)p + 1;
-	    strcpy((char *)p, (char *)data);
-	    *(short int *)mem += strlen((char *)p) + 2;
+	    mystrcpy((char *)p, (char *)data);
+	    *(short int *)mem += mystrlen((char *)p) + 1;
 	    break;
 
 	case F_data_float: 
