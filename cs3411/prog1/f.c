@@ -31,8 +31,8 @@ int mystrlen(char *input) {
  * Param source: this is the source of the copied string.
  */
 void mystrcpy(char *target, char *source) {
-    do *target++ = *source++;
-    while(*source != 0);
+    do *target++ = *source;
+    while(*source++ != 0);
     return;
 }
 
@@ -103,11 +103,11 @@ void * f(int code, void * mem, void * data) {
      */
     if (code == F_first) {
 	if((size_t)data != 0){
-	    p =  malloc((size_t)data);
+	    p = malloc((size_t)data);
 	    *(short int *)p = 2;
 	    return (void *)p;
 	} else {
-	    return p;
+	   return p;
 	}
     } else if (code == F_last) {
 	free(mem);
