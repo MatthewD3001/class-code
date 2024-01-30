@@ -32,7 +32,7 @@ int mystrlen(char *input) {
  */
 void mystrcpy(char *target, char *source) {
     do *target++ = *source;
-    while(*source++ != 0);
+    while(*source++);
     return;
 }
 
