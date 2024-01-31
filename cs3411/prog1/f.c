@@ -44,7 +44,7 @@ void mystrcpy(char *target, char *source) {
  */
 void printmem(void *mem, void *p){
 
-    void *print = (char *)mem + 2;  // Skip the first two bytes as those contain the offset, not data.
+    char *print = (char *)mem + 2;  // Skip the first two bytes as those contain the offset, not data.
     
     /**
      * This loop continues until the printing pointer has reached the end of the data within mem.
@@ -57,24 +57,24 @@ void printmem(void *mem, void *p){
      *
      * The default statement points out where data was stored improperly or this function was used improperly.
      */
-    while(print < p){
-	switch (*(char *)print) {
+    while(print < (char *)p){
+	switch (*print) {
 	    case TYPE_INT:
-		print = (char *)print + 1;
+		print++;
 		printf("%d", *(int *)print);
-		print = (char *)print + sizeof((int *)print);
+		print += sizeof((int *)print);
 		break;
 
 	    case TYPE_CHAR:
-		print = (char *)print + 1;
-		printf("%s", (char *)print);
-		print = (char *)print + mystrlen((char *)print);
+		print++;
+		printf("%s", print);
+		print += mystrlen(print);
 		break;
 
 	    case TYPE_FLOAT:
-		print = (char *)print + 1;
+		print++;
 		printf("%f", *(float *)print);
-		print = (char *)print + sizeof((float *)print);
+		print += sizeof((float *)print);
 		break;
 
 	    default:
@@ -102,12 +102,13 @@ void * f(int code, void * mem, void * data) {
      * Allocate memory, set the first two bytes to empty data offset, return allocated pointer.
      */
     if (code == F_first) {
-	if((size_t)data){
+	if((size_t)data != 0){
 	    p = malloc((size_t)data);
 	    *(short int *)p = 2;
 	    return p;
 	} else {
-	   return p;
+	    printf("Tried to init with zero\n");
+	    return p;
 	}
     } else if (code == F_last) {
 	free(mem);
@@ -157,5 +158,5 @@ void * f(int code, void * mem, void * data) {
 	    printmem(mem, p);
 	    break;
     }
-    return (void *)mem;
+    return mem;
 }
