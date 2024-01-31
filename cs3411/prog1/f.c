@@ -102,10 +102,10 @@ void * f(int code, void * mem, void * data) {
      * Allocate memory, set the first two bytes to empty data offset, return allocated pointer.
      */
     if (code == F_first) {
-	if((size_t)data != 0){
+	if((size_t)data){
 	    p = malloc((size_t)data);
 	    *(short int *)p = 2;
-	    return (void *)p;
+	    return p;
 	} else {
 	   return p;
 	}
@@ -119,9 +119,8 @@ void * f(int code, void * mem, void * data) {
 	return p;
     }
 
-    p = mem;
-    p = (char *)p + *(short int *)p;	// This reads the first two bytes for the short int which is equal to the number 
-					// of bytes needed to move in order to be at the first empty data location.
+    p = (char *)mem + *(short int *)mem;	// This reads the first two bytes for the short int which is equal to the number 
+						// of bytes needed to move in order to be at the first empty data location.
 
     /**
      * This switch statement takes the code passed to the function and loads the associated data properly.
