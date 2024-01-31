@@ -42,7 +42,7 @@ void mystrcpy(char *target, char *source) {
  * Param mem: This is the pointer for the whole data structure, pointing to it's first byte of data.
  * Param p: This is the pointer to the end of the data structure so that the print knows when to stop.
  */
-void printmem(void *mem, void *p){
+void printmem(void *mem, char *p){
 
     char *print = (char *)mem + 2;  // Skip the first two bytes as those contain the offset, not data.
     
@@ -57,7 +57,7 @@ void printmem(void *mem, void *p){
      *
      * The default statement points out where data was stored improperly or this function was used improperly.
      */
-    while(print < (char *)p){
+    while(print < p){
 	switch (*print) {
 	    case TYPE_INT:
 		print++;
@@ -95,7 +95,7 @@ void printmem(void *mem, void *p){
  */
 void * f(int code, void * mem, void * data) {
 
-    void *p = 0;			// Main pointer to modify data in this data structure.
+    char *p = 0;			// Main pointer to modify data in this data structure.
 
     /**
      * First function call, check data to know how much space to allocate.
@@ -103,21 +103,21 @@ void * f(int code, void * mem, void * data) {
      */
     if (code == F_first) {
 	if((size_t)data != 0){
-	    p = malloc((size_t)data);
+	    p = (char *)malloc((size_t)data);
 	    *(short int *)p = 2;
-	    return p;
+	    return (void *)p;
 	} else {
 	    printf("Tried to init with zero\n");
-	    return p;
+	    return (void *)p;
 	}
     } else if (code == F_last) {
 	free(mem);
-	return p;
+	return (void *)p;
     }
 
     if(!mem){				// Make sure the user passed a valid pointer.
 	printf("Initiallize mem!\n");
-	return p;
+	return (void *)p;
     }
 
     p = (char *)mem + *(short int *)mem;	// This reads the first two bytes for the short int which is equal to the number 
@@ -134,28 +134,32 @@ void * f(int code, void * mem, void * data) {
      */
     switch (code) {
 	case F_data_int:
-	    *(char *)p = TYPE_INT;
-	    p = (char *)p + 1;
+	    *p = TYPE_INT;
+	    p++;
 	    *(int *)p = *(int *)data;
 	    *(short int *)mem += sizeof((int *)p) + 1;
 	    break;
 
 	case F_data_char:
-	    *(char *)p = TYPE_CHAR;
-	    p = (char *)p + 1;
-	    mystrcpy((char *)p, (char *)data);
-	    *(short int *)mem += mystrlen((char *)p) + 1;
+	    *p = TYPE_CHAR;
+	    p++;
+	    mystrcpy(p, (char *)data);
+	    *(short int *)mem += mystrlen(p) + 1;
 	    break;
 
 	case F_data_float: 
-	    *(char *)p = TYPE_FLOAT;
-	    p = (char *)p + 1;
+	    *p = TYPE_FLOAT;
+	    p++;
 	    *(float *)p = *(float *)data;
 	    *(short int *)mem += sizeof((float *)p) + 1;
 	    break;
 
 	case F_print:
 	    printmem(mem, p);
+	    break;
+
+	default:
+	    printf("Invalid code: %d", code);
 	    break;
     }
     return mem;
