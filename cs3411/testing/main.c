@@ -10,33 +10,25 @@
 
 void * f (int code, void * mem, void * data);
 
-int main()
-{
-    int     i_a;
-    float   f_a;
+int main() {
+    int a = 15;
+    int *ap = &a;
+    float b = 17.4325;
+    float *bp = &b;
 
-    void  * m; 
-    int   * ip;
-    float * fp;
-    
- 
-    fp = & f_a;
-    ip = & i_a;
+    void *m = 0;
 
-    m = f (F_first, 0, (void *)200);           /* we really don't know how much it will take */
-//    m = f (F_first, 0, 0);           /* we really don't know how much it will take */
-    m = f (F_data_char, m,  (void *)"System programming class has ");
+    m = f(F_first, 0, (void *)200);
 
-    f_a = 69.7;
-    m = f (F_data_float,  m,  (void *)fp);
-    m = f (F_data_char, m,  (void *)" registered ");
-    m = f (F_data_char, m,  (void *)"students in a ");
-    m = f (F_data_char, m,  (void *)"classroom of ");
+    m = f(F_data_int, m, (void *)ap);
+    m = f(F_data_char, m, (void *)" people are in the ");
+    m = f(F_data_char, m, (void *)"systems pro");
+    m = f(F_data_char, m, (void *)"gramming class. ");
+    m = f(F_data_char, m, (void *)"If you add 2.4325 to that then you get ");
+    m = f(F_data_float, m, (void *)bp);
+    m = f(F_data_char, m, (void *)".");
+    m = f(F_data_char, m, (void *)"\n");
 
-    i_a = 70;
-    m = f (F_data_int,  m,  (void *)ip);
-    m = f (F_data_char, m,  (void *)"\n");
-
-    m = f (F_print, m, 0);
-    m = f (F_last, m, 0);
+    m = f(F_print, m, 0);
+    m = f(F_last, m, 0);
 }

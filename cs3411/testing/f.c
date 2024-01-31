@@ -58,15 +58,6 @@ void printmem(void *mem, void *p){
      * The default statement points out where data was stored improperly or this function was used improperly.
      */
     while(print < p){
-	if(*(char *)print){
-	    printf("%c: %p\n", *(char *)print, print);
-	} else {
-	    printf("NULL: %p\n", print);
-	}
-	print = (char *)print + 1;
-    }
-    /*
-    while(print < p){
 	switch (*(char *)print) {
 	    case TYPE_INT:
 		print = (char *)print + 1;
@@ -90,7 +81,7 @@ void printmem(void *mem, void *p){
 		printf("mem is invalid at this address: %p\n", print);
 		return;
 	}
-    }*/
+    }
     return;
 }
 
