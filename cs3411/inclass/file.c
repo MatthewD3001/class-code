@@ -5,11 +5,20 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#define MAX_READ 50
+
 int main(){
-	int fd = open("./example.txt", O_RDWR|O_CREAT, 0644);
-	char buf[50] = {0};
+	int fd = open("./read.c", O_RDWR|O_CREAT, 0644);
+	int fdW = open("./output.c", O_RDWR|O_CREAT, 0644);
+	char buf[MAX_READ] = {0};
 	int size = 0;
-	size = read(fd, buf, 50);
-	printf("%sNumber of things stored: %d\n", buf, size);
+	int cycles = 0;
+	do {
+		size = read(fd, buf, MAX_READ);
+		write(fdW, buf, size);
+		cycles++;
+	}
+	while(size);
+	printf("Number of cycles ran: %d\n", cycles);
 	return 0;
 }
