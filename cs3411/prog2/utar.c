@@ -1,3 +1,5 @@
 #include <stdio.h>
 
-int main(){}
+int main(){
+	printf("Example output for utar.\n");
+}
