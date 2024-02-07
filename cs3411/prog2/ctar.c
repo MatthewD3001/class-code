@@ -8,12 +8,12 @@
 #define BUF_LEN 500
 
 typedef struct {
-	int	magic;			// This must have the value 0x63746172.
+	int		magic;			// This must have the value 0x63746172.
 	void	*eop;			// End of file pointer.
-	short	block_count;		// Number of entries in the block which are in-use.
-	int	file_size[4];		// File size in bytes for files 1..4.
+	short	block_count;	// Number of entries in the block which are in-use.
+	int		file_size[4];	// File size in bytes for files 1..4.
 	char	deleted[4];		// contains binary one at position i if the i-th entry was deleted.
-	char	*file_name[4];		// Pointer to the name of the file.
+	char	*file_name[4];	// Pointer to the name of the file.
 	void	*next;			// Pointer to the next header block.
 } hdr;
 
@@ -23,7 +23,7 @@ void writefile(char *file, hdr *hdrsrc, int tarfd) {
 		hdr hdr = {
 			.magic			= 0x63746172,
 			.eop			= 0,
-			.block_count		= 0,
+			.block_count	= 0,
 			.file_size		= {0, 0, 0, 0},
 			.deleted		= {0, 0, 0, 0},
 			.file_name		= {0, 0, 0, 0},
@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
 	hdr hdr = {
 		.magic			= 0x63746172,
 		.eop			= 0,
-		.block_count		= 0,
+		.block_count	= 0,
 		.file_size		= {0, 0, 0, 0},
 		.deleted		= {0, 0, 0, 0},
 		.file_name		= {0, 0, 0, 0},
