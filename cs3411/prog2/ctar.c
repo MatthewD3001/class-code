@@ -22,33 +22,66 @@ typedef struct {
 
 							// offset is going to be done with SEEK
 
-void writefile(char *file, hdr *hdrsrc, int tarfd) {
-	
-
-	hdrsrc->block_count++;
-
-	int fd = open(file, O_RDONLY);
-	
-	if (fd == -1) {
-		fprintf(stderr, "Invalid file argument: %s not found or invalid file\n", file);
-		exit(EXIT_FAILURE);
-		return ERROR_ARG;
-	}
-
-	printf("Writing in file: %s - eop: %d\n", file, hdrsrc->eop);
-
-	close(fd);
-	return 0;
-}
-
 void printerr(int code, void *err) {
-	char buf[50] = {0};
+	char buf[100] = {0};
 	switch (code) {
 		case ERROR_USAGE:
+			sprintf(buf, "Proper usage: \"-a\" or \"-d\" followed by file names.\n");
+			write(2, buf, 100);
+			exit(EXIT_FAILURE);
 			break;
 		case ERROR_ARG:
+			sprintf(buf, "Invalid file argument: %s not found or invalid file\n", (char *)err);
+			write(2, buf, 100);
+			exit(EXIT_FAILURE);
 			break;
 	}
+}
+
+/**
+ * This is a helper function to return the length of a string EXCLUDING the null byte.
+ *
+ * Param input: this is the input char pointer for the beginning of a string.
+ */
+short int mystrlen(char *input) {
+    char *begin = input;
+    while(*input++);
+    return --input - begin;
+}
+
+void writefile(char *file, hdr *hdr, int TAR_FD) {
+
+	const int CURR_FD = open(file, O_RDONLY);
+	if (CURR_FD == -1) {
+		printerr(ERROR_ARG, file);
+	}
+
+    const int BLOCK_COUNT = hdr->block_count;
+	hdr->file_name[BLOCK_COUNT] = lseek(TAR_FD, hdr->eop, SEEK_SET);
+    
+    const short int NAME_LEN = mystrlen(file);
+	write(TAR_FD, &NAME_LEN, 2);
+	write(TAR_FD, file, mystrlen(file));
+
+	char writeBuf[BUF_LEN];
+	int readCount = read(CURR_FD, writeBuf, BUF_LEN);
+	while (readCount) {
+		write(TAR_FD, writeBuf, readCount);
+		readCount = read(CURR_FD, writeBuf, BUF_LEN);
+	}
+
+	hdr->eop = lseek(TAR_FD, 0, SEEK_END);
+    int fileSize = hdr->eop - hdr->file_name[BLOCK_COUNT];
+    hdr->file_size[BLOCK_COUNT] = fileSize;
+    printf("File size read is: %d\n", fileSize);
+    lseek(TAR_FD, 0, SEEK_SET);
+	write(TAR_FD, &hdr, sizeof(hdr));
+
+	hdr->block_count++;
+
+	printf("Writing in file: %s - eop: %d\n", file, hdr->eop);
+
+	close(CURR_FD);
 }
 
 int main(int argc, char **argv) {
@@ -58,8 +91,7 @@ int main(int argc, char **argv) {
 		|| (argv[1][1] != 'a' && argv[1][1] != 'd')
 		|| argv[1][2] != 0 
 	) {
-		fprintf(stderr, "Proper usage: \"-a\" or \"-d\" followed by file names.\n");
-		exit(EXIT_FAILURE);
+		printerr(ERROR_USAGE, 0);
 	}
 	
 	int tarfd = open(argv[2], O_WRONLY | O_CREAT, 0644);
@@ -86,8 +118,12 @@ int main(int argc, char **argv) {
 		if (hdr.block_count == 4) {
 			printf("New block needs to be created!!\n");
 		}
-		writefile(argv[i], &hdr, tarfd)
+		writefile(argv[i], &hdr, tarfd);
 	}
+
+    for(int i = 0; i < 4; i++) {
+        printf("File %d size stored: %d\n", i, hdr.file_size[i]);
+    }
 	
 	return 1;
 }
