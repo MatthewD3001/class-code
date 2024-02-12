@@ -49,7 +49,29 @@ short int mystrlen(char *input) {
     return --input - begin;
 }
 
+/**
+* This function will write into a given file using the given header as the main header. If a next header exists then it will move ot that one first.
+*
+* Param file: This is a null terminated file name from the current working directory.
+* Param hdr: This is the first header of the archive file.
+* Param TAR_FD: this is the file descriptor for the archive file. This should never change.
+*/
 void writefile(char *file, hdr *hdr, int TAR_FD) {
+
+    // currhdr is going to be the header that will have the file information that is currently being stored added to it.
+    // Note this can also be just the first header if the block count has yet to reach 4.
+    hdr *currhdr = hdr;
+
+    if(currhdr->block_count == 4) {
+        currhdr->next = hdr->eop;
+        currhdr = 
+    }
+
+    while(currhdr->next) {
+        lseek(TAR_FD, currhdr->next, SEEK_SET);
+        read(TAR_FD, currhdr, sizeof(currhdr));
+    }
+    lseek(TAR_FD, 0, SEEK_SET);
 
 	const int CURR_FD = open(file, O_RDONLY);
 	if (CURR_FD == -1) {
@@ -57,7 +79,7 @@ void writefile(char *file, hdr *hdr, int TAR_FD) {
 	}
 
     const int BLOCK_COUNT = hdr->block_count;
-	hdr->file_name[BLOCK_COUNT] = lseek(TAR_FD, hdr->eop, SEEK_SET);
+	currhdr->file_name[BLOCK_COUNT] = lseek(TAR_FD, hdr->eop, SEEK_SET);
     
     const short int NAME_LEN = mystrlen(file);
 	write(TAR_FD, &NAME_LEN, 2);
@@ -71,15 +93,14 @@ void writefile(char *file, hdr *hdr, int TAR_FD) {
 	}
 
 	hdr->eop = lseek(TAR_FD, 0, SEEK_END);
-    int fileSize = hdr->eop - hdr->file_name[BLOCK_COUNT];
-    hdr->file_size[BLOCK_COUNT] = fileSize;
-    printf("File size read is: %d\n", fileSize);
+    int fileSize = hdr->eop - currhdr->file_name[BLOCK_COUNT];
+    currhdr->file_size[BLOCK_COUNT] = fileSize;
     lseek(TAR_FD, 0, SEEK_SET);
-	write(TAR_FD, &hdr, sizeof(hdr));
+	write(TAR_FD, currhdr, sizeof(currhdr));
 
-	hdr->block_count++;
+	currhdr->block_count++;
 
-	printf("Writing in file: %s - eop: %d\n", file, hdr->eop);
+	printf("Writing in file: %s - eop: %d\n", file, currhdr->eop);
 
 	close(CURR_FD);
 }
@@ -115,9 +136,6 @@ int main(int argc, char **argv) {
 
 
 	for(int i = 3; i < argc; i++) {
-		if (hdr.block_count == 4) {
-			printf("New block needs to be created!!\n");
-		}
 		writefile(argv[i], &hdr, tarfd);
 	}
 
