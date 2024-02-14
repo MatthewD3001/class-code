@@ -58,18 +58,32 @@ short int mystrlen(char *input) {
 */
 void writefile(char *file, hdr *hdr, int TAR_FD) {
 
+    // First reset the cursor in the archive file.
+    lseek(TAR_FD, 0, SEEK_SET);
+
     // currhdr is going to be the header that will have the file information that is currently being stored added to it.
     // Note this can also be just the first header if the block count has yet to reach 4.
-    hdr *currhdr = hdr;
-
-    if(currhdr->block_count == 4) {
-        currhdr->next = hdr->eop;
-        currhdr = 
-    }
+    hdr *currhdr;
+    int offset = 0;
+    offset = read(TAR_FD, currhdr, sizeof(hdr));
 
     while(currhdr->next) {
         lseek(TAR_FD, currhdr->next, SEEK_SET);
-        read(TAR_FD, currhdr, sizeof(currhdr));
+        offset = read(TAR_FD, currhdr, sizeof(currhdr));
+    }
+    if(currhdr->block_count == 4) {
+        currhdr->next = hdr->eop;
+        lseek(TAR_FD, -offset, SEEK_CUR);    // Note the use of SEEK_CUR here.
+        *currhdr = {
+	    	.magic			= 0x63746172,
+	    	.eop			= 0,
+    		.block_count	= 0,
+	    	.file_size		= {0, 0, 0, 0},
+	    	.deleted		= {0, 0, 0, 0},
+		    .file_name		= {0, 0, 0, 0},
+		    .next			= 0
+	    };
+	    write(TAR_FD, currhdr, sizeof(currhdr));
     }
     lseek(TAR_FD, 0, SEEK_SET);
 
