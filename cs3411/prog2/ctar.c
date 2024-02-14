@@ -18,7 +18,7 @@ typedef struct {
 	char	deleted[4];		// contains binary one at position i if the i-th entry was deleted.
 	int		file_name[4];	// Pointer to the name of the file. Done in number of bytes offset
 	int		next;			// Pointer to the next header block. Also in the number of bytes needed to reach the next header
-} hdr;
+} hdr, tmphdr;
 
 							// offset is going to be done with SEEK
 
@@ -63,27 +63,30 @@ void writefile(char *file, hdr *hdr, int TAR_FD) {
 
     // currhdr is going to be the header that will have the file information that is currently being stored added to it.
     // Note this can also be just the first header if the block count has yet to reach 4.
-    hdr *currhdr;
-    int offset = 0;
-    offset = read(TAR_FD, currhdr, sizeof(hdr));
-
-    while(currhdr->next) {
-        lseek(TAR_FD, currhdr->next, SEEK_SET);
-        offset = read(TAR_FD, currhdr, sizeof(currhdr));
+    tmphdr currhdr;
+    if (hdr->block_count) {
+        read(TAR_FD, &currhdr, sizeof(hdr));
+    } else {
+        currhdr = *hdr;
     }
-    if(currhdr->block_count == 4) {
-        currhdr->next = hdr->eop;
-        lseek(TAR_FD, -offset, SEEK_CUR);    // Note the use of SEEK_CUR here.
-        *currhdr = {
+    int hdrOffset = 0;
+    while(currhdr.next) {
+        hdrOffset = lseek(TAR_FD, currhdr.next, SEEK_SET);
+        read(TAR_FD, &currhdr, sizeof(currhdr));
+    }
+    if(currhdr.block_count == 4) {
+        currhdr.next = hdr->eop;
+        lseek(TAR_FD, hdr->eop, SEEK_SET);
+        tmphdr currhdr = {
 	    	.magic			= 0x63746172,
-	    	.eop			= 0,
+	    	.eop			= 69,
     		.block_count	= 0,
 	    	.file_size		= {0, 0, 0, 0},
 	    	.deleted		= {0, 0, 0, 0},
 		    .file_name		= {0, 0, 0, 0},
 		    .next			= 0
 	    };
-	    write(TAR_FD, currhdr, sizeof(currhdr));
+	    write(TAR_FD, &currhdr, sizeof(currhdr));
     }
     lseek(TAR_FD, 0, SEEK_SET);
 
@@ -93,7 +96,7 @@ void writefile(char *file, hdr *hdr, int TAR_FD) {
 	}
 
     const int BLOCK_COUNT = hdr->block_count;
-	currhdr->file_name[BLOCK_COUNT] = lseek(TAR_FD, hdr->eop, SEEK_SET);
+	currhdr.file_name[BLOCK_COUNT] = lseek(TAR_FD, hdr->eop, SEEK_SET);
     
     const short int NAME_LEN = mystrlen(file);
 	write(TAR_FD, &NAME_LEN, 2);
@@ -107,14 +110,14 @@ void writefile(char *file, hdr *hdr, int TAR_FD) {
 	}
 
 	hdr->eop = lseek(TAR_FD, 0, SEEK_END);
-    int fileSize = hdr->eop - currhdr->file_name[BLOCK_COUNT];
-    currhdr->file_size[BLOCK_COUNT] = fileSize;
-    lseek(TAR_FD, 0, SEEK_SET);
-	write(TAR_FD, currhdr, sizeof(currhdr));
+    int fileSize = hdr->eop - currhdr.file_name[BLOCK_COUNT];
+    currhdr.file_size[BLOCK_COUNT] = fileSize;
+    lseek(TAR_FD, hdrOffset, SEEK_SET);
+	write(TAR_FD, &currhdr, sizeof(currhdr));
 
-	currhdr->block_count++;
+	currhdr.block_count++;
 
-	printf("Writing in file: %s - eop: %d\n", file, currhdr->eop);
+	printf("Writing in file: %s - eop: %d\n", file, currhdr.eop);
 
 	close(CURR_FD);
 }
@@ -129,7 +132,7 @@ int main(int argc, char **argv) {
 		printerr(ERROR_USAGE, 0);
 	}
 	
-	int tarfd = open(argv[2], O_WRONLY | O_CREAT, 0644);
+	const int TAR_FD = open(argv[2], O_WRONLY | O_CREAT, 0644);
 
 	hdr hdr = {
 		.magic			= 0x63746172,
@@ -142,18 +145,19 @@ int main(int argc, char **argv) {
 	};
 	
 	// This will update the eop to the end of the file in bytes
-	write(tarfd, &hdr, sizeof(hdr));
-	hdr.eop = lseek(tarfd, 0, SEEK_END);
-	lseek(tarfd, 0, SEEK_SET);
-	write(tarfd, &hdr, sizeof(hdr));
+	write(TAR_FD, &hdr, sizeof(hdr));
+	hdr.eop = lseek(TAR_FD, 0, SEEK_END);
+	lseek(TAR_FD, 0, SEEK_SET);
+	write(TAR_FD, &hdr, sizeof(hdr));
 	
 
 
 	for(int i = 3; i < argc; i++) {
-		writefile(argv[i], &hdr, tarfd);
+		writefile(argv[i], &hdr, TAR_FD);
 	}
 
     for(int i = 0; i < 4; i++) {
+        printf("File %d name len stored: %d\n", i, hdr.file_name[i]);
         printf("File %d size stored: %d\n", i, hdr.file_size[i]);
     }
 	
