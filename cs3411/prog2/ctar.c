@@ -1,13 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 
-#define BUF_LEN 500
+#define BUF_LEN 8000
 #define ERROR_USAGE 1
 #define ERROR_ARG 2
+#define ERROR_TAR 3
+#define ERROR_DUP 4
+#define MAGIC 0x63746172
 
 typedef struct {
 	int		magic;			// This must have the value 0x63746172. Check first 4 bytes in the ctar file to see if they are this
@@ -35,7 +39,70 @@ void printerr(int code, void *err) {
 			write(2, buf, 100);
 			exit(EXIT_FAILURE);
 			break;
+        case ERROR_TAR:
+            sprintf(buf, "Invalid tar file with same name: %s\n", (char *)err);
+            write(2, buf, 100);
+            exit(EXIT_FAILURE);
+            break;
+		case ERROR_DUP:
+			sprintf(buf, "Duplicate argument: %s is already in the archive or duplicate argument\n", (char *)err);
+			write(2, buf, 100);
+			exit(EXIT_FAILURE);
+			break;
 	}
+}
+
+/**
+ * This function will verify all of the arguments prior to anything being done. If all tests pass then the tar fd is returned.
+ *
+ * Param argc - This is the number of args passed
+ * Param argv - This is the array of all args passed
+ * Param hdr - This is the pointer to the current hdr struct
+ * Return - The fd for the tar archive
+ */
+int verify(int argc, char **argv, hdr *hdr) {
+    // Verify the args are correct
+	if (argc < 3
+		|| argv[1][0] != '-'
+		|| (argv[1][1] != 'a' && argv[1][1] != 'd')
+		|| argv[1][2] != 0 
+	) {
+		printerr(ERROR_USAGE, 0);
+	}
+
+    // Verify no duplicate args in the given args
+    for (int i = 3; i < argc - 1; i++) {
+        for (int j = i; j < argc; j++) {
+            if (strcmp(argv[i], argv[j])) {
+                printerr(ERROR_DUP, argv[i]);
+            }
+        }
+    }
+
+    // Verify that the archive file is valid.
+    int tarfd = open(argv[2], O_RDWR, 0644);
+    if (tarfd == -1) {
+        // file does not exist
+        printf("file does not already exist\n");
+        tarfd = open(argv[2], O_RDWR | O_CREAT, 0644);
+
+        // Init the first header in the new file.
+	    write(tarfd, &hdr, sizeof(hdr));
+	    hdr.eop = lseek(tarfd, 0, SEEK_END);
+	    lseek(tarfd, 0, SEEK_SET);
+	    write(tarfd, &hdr, sizeof(hdr));
+    } else {
+        // verify it is a valid archive
+        read(tarfd, &hdr, sizeof(hdr));
+        if (hdr.magic != MAGIC) {
+            printf("number read: %d\n", hdr.magic);
+            printerr(ERROR_TAR, argv[2]);
+        }
+
+        // TODO - Make sure that there are no duplicates in the actual archive file already with the given args
+    }
+
+    return tmpfd
 }
 
 void resethdr(hdr *hdr) {
@@ -55,7 +122,7 @@ void resethdr(hdr *hdr) {
  *
  * Param input: this is the input char pointer for the beginning of a string.
  */
-short int mystrlen(char *input) {
+int mystrlen(char *input) {
     char *begin = input;
     while(*input++);
     return --input - begin;
@@ -153,18 +220,9 @@ void writefile(char *file, hdr *hdr, int TAR_FD) {
 
 int main(int argc, char **argv) {
 
-	if (argc < 3
-		|| argv[1][0] != '-'
-		|| (argv[1][1] != 'a' && argv[1][1] != 'd')
-		|| argv[1][2] != 0 
-	) {
-		printerr(ERROR_USAGE, 0);
-	}
-	
-	const int TAR_FD = open(argv[2], O_RDWR | O_CREAT, 0644);
 
 	hdr hdr = {
-		.magic			= 0x63746172,
+		.magic			= MAGIC,
 		.eop			= 0,
 		.block_count	= 0,
 		.file_size		= {0, 0, 0, 0},
@@ -172,12 +230,19 @@ int main(int argc, char **argv) {
 		.file_name		= {0, 0, 0, 0},
 		.next			= 0
 	};
+    
+    // Check to see if the archive file already exists, if it does verify magic number.
+
+    // TODO - check if the files to be inserted are already in the archive
+    
+
+
+    // DO ALL ERROR CHECKING BEFORE HERE
 	
-	// This will update the eop to the end of the file in bytes
-	write(TAR_FD, &hdr, sizeof(hdr));
-	hdr.eop = lseek(TAR_FD, 0, SEEK_END);
-	lseek(TAR_FD, 0, SEEK_SET);
-	write(TAR_FD, &hdr, sizeof(hdr));
+	const int TAR_FD = tmpfd;
+	
+    // TMP RETURN HERE
+    return 0;
 	
 	for(int i = 3; i < argc; i++) {
 		writefile(argv[i], &hdr, TAR_FD);
