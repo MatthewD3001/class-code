@@ -38,6 +38,18 @@ void printerr(int code, void *err) {
 	}
 }
 
+void resethdr(hdr *hdr) {
+	hdr->magic			= 0x63746172;
+    hdr->eop			= 0;
+	hdr->block_count	= 0;
+    for (int i = 0; i < 4; i++) {
+        hdr->file_size[i]	= 0;
+        hdr->deleted[i]		= 0;
+	    hdr->file_name[i]	= 0;
+    }
+	hdr->next			= 0;
+}
+
 /**
  * This is a helper function to return the length of a string EXCLUDING the null byte.
  *
@@ -61,33 +73,14 @@ void writefile(char *file, hdr *hdr, int TAR_FD) {
     // First reset the cursor in the archive file.
     lseek(TAR_FD, 0, SEEK_SET);
 
-    if (hdr->block_count) {
-        read(TAR_FD, hdr, sizeof(*hdr));
-        printf("hdr magic: %d\n", hdr->magic);
-        printf("hdr eop: %d\n", hdr->eop);
-        printf("hdr block_count: %d\n", hdr->block_count);
-        printf("hdr file size: %d, %d, %d, %d\n", hdr->file_size[0], hdr->file_size[1], hdr->file_size[2], hdr->file_size[3]);
-        printf("hdr deleted: %d, %d, %d, %d\n", hdr->deleted[0], hdr->deleted[1], hdr->deleted[2], hdr->deleted[3]);
-        printf("hdr file name: %d, %d, %d, %d\n", hdr->file_name[0], hdr->file_name[1], hdr->file_name[2], hdr->file_name[3]);
-        printf("hdr next: %d\n", hdr->next);
-    }
+    read(TAR_FD, hdr, sizeof(*hdr));
+
     int hdrOffset = 0;
+    char firsthdr = 1;
     while(hdr->next) {
         hdrOffset = lseek(TAR_FD, hdr->next, SEEK_SET);
         read(TAR_FD, hdr, sizeof(*hdr));
-    }
-    if(hdr->block_count == 4) {
-        hdr->next = lseek(TAR_FD, 0, SEEK_END);
-	    hdr->magic			= 0x63746172;
-	    hdr->eop			= 0;
-    	hdr->block_count	= 0;
-        for (int i = 0; i < 4; i++) {
-	        hdr->file_size[i]	= 0;
-	        hdr->deleted[i]		= 0;
-		    hdr->file_name[i]	= 0;
-        }
-		hdr->next			= 0;
-	    write(TAR_FD, hdr, sizeof(*hdr));
+        firsthdr = 0;
     }
     lseek(TAR_FD, 0, SEEK_SET);
 
@@ -95,13 +88,20 @@ void writefile(char *file, hdr *hdr, int TAR_FD) {
 	if (CURR_FD == -1) {
 		printerr(ERROR_ARG, file);
 	}
+    int bu;
+    for (bu = 0; bu < 4; bu++) {
+        if (hdr->file_name[bu]) {
+            break;
+        }
+    }
+    printf("blocks used: %d\n", bu);
 
     const int BLOCK_COUNT = hdr->block_count;
-	hdr->file_name[BLOCK_COUNT] = lseek(TAR_FD, hdr->eop, SEEK_SET);
+	hdr->file_name[BLOCK_COUNT] = lseek(TAR_FD, 0, SEEK_END);
     
     const short int NAME_LEN = mystrlen(file);
 	write(TAR_FD, &NAME_LEN, 2);
-	write(TAR_FD, file, mystrlen(file));
+	write(TAR_FD, file, NAME_LEN);
 
 	char writeBuf[BUF_LEN];
 	int readCount = read(CURR_FD, writeBuf, BUF_LEN);
@@ -109,17 +109,46 @@ void writefile(char *file, hdr *hdr, int TAR_FD) {
 		write(TAR_FD, writeBuf, readCount);
 		readCount = read(CURR_FD, writeBuf, BUF_LEN);
 	}
-
-	hdr->eop = lseek(TAR_FD, 0, SEEK_END);
-    int fileSize = hdr->eop - hdr->file_name[BLOCK_COUNT];
+    const int END = lseek(TAR_FD, 0, SEEK_END);
+    int fileSize = END - hdr->file_name[BLOCK_COUNT];
     hdr->file_size[BLOCK_COUNT] = fileSize;
 	hdr->block_count++;
     lseek(TAR_FD, hdrOffset, SEEK_SET);
 	write(TAR_FD, hdr, sizeof(*hdr));
 
-	printf("Wrote file: %s - eop: %d\n", file, hdr->eop);
-
 	close(CURR_FD);
+/*
+    printf("curr hdr start: %d\n", hdrOffset);
+    printf("hdr magic: %d\n", hdr->magic);
+    printf("hdr eop: %d\n", hdr->eop);
+    printf("hdr block_count: %d\n", hdr->block_count);
+    printf("hdr file size: %d, %d, %d, %d\n", hdr->file_size[0], hdr->file_size[1], hdr->file_size[2], hdr->file_size[3]);
+    printf("hdr deleted: %d, %d, %d, %d\n", hdr->deleted[0], hdr->deleted[1], hdr->deleted[2], hdr->deleted[3]);
+    printf("hdr file name: %d, %d, %d, %d\n", hdr->file_name[0], hdr->file_name[1], hdr->file_name[2], hdr->file_name[3]);
+    printf("hdr next: %d\n", hdr->next);
+*/
+    if(hdr->block_count == 4) {
+        hdr->next = lseek(TAR_FD, 0, SEEK_END);
+        printf("NEW BLOCK hdr next: %d\n", hdr->next);
+        lseek(TAR_FD, hdrOffset, SEEK_SET);
+	    write(TAR_FD, hdr, sizeof(*hdr));
+        //printf("------writing new block and offset = %d\n", hdrOffset);
+        resethdr(hdr);
+        lseek(TAR_FD, 0, SEEK_END);
+        write(TAR_FD, hdr, sizeof(*hdr));
+    }
+
+	if (firsthdr) {
+        hdr->eop = END;
+    } else {        
+        lseek(TAR_FD, 0, SEEK_SET);
+        read(TAR_FD, hdr, sizeof(*hdr));
+        hdr->eop = END;
+        lseek(TAR_FD, 0, SEEK_SET);
+	    write(TAR_FD, hdr, sizeof(*hdr));
+    }
+
+	printf("Wrote file: %s - eop: %d\n-------------------------------------------------\n", file, hdr->eop);
 }
 
 int main(int argc, char **argv) {
@@ -150,16 +179,9 @@ int main(int argc, char **argv) {
 	lseek(TAR_FD, 0, SEEK_SET);
 	write(TAR_FD, &hdr, sizeof(hdr));
 	
-
-
 	for(int i = 3; i < argc; i++) {
 		writefile(argv[i], &hdr, TAR_FD);
 	}
-
-    for(int i = 0; i < 4; i++) {
-        printf("File %d name len stored: %d\n", i, hdr.file_name[i]);
-        printf("File %d size stored: %d\n", i, hdr.file_size[i]);
-    }
-	
+    
 	return 1;
 }
