@@ -7,10 +7,15 @@
 #include <unistd.h>
 
 #define BUF_LEN 8000
+
 #define ERROR_USAGE 1
 #define ERROR_ARG 2
 #define ERROR_TAR 3
 #define ERROR_DUP 4
+#define ERROR_DEL 5
+
+#define FNF 6               // File Not Found
+
 #define MAGIC 0x63746172
 
 typedef struct {
@@ -35,21 +40,81 @@ void printerr(int code, void *err) {
 			exit(EXIT_FAILURE);
 			break;
 		case ERROR_ARG:
-			sprintf(buf, "Invalid file argument: %s not found or invalid file\n", (char *)err);
+			sprintf(buf, "Invalid file argument: \"%s\" not found or invalid file\n", (char *)err);
 			write(2, buf, 100);
 			exit(EXIT_FAILURE);
 			break;
         case ERROR_TAR:
-            sprintf(buf, "Invalid tar file with same name: %s\n", (char *)err);
+            sprintf(buf, "Invalid tar file with same name: \"%s\"\n", (char *)err);
             write(2, buf, 100);
             exit(EXIT_FAILURE);
             break;
 		case ERROR_DUP:
-			sprintf(buf, "Duplicate argument: %s is already in the archive or duplicate argument\n", (char *)err);
+			sprintf(buf, "Duplicate argument: \"%s\" is already in the archive or duplicate argument\n", (char *)err);
+			write(2, buf, 100);
+			exit(EXIT_FAILURE);
+			break;
+		case ERROR_DEL:
+			sprintf(buf, "Argument: \"%s\" was not found in archive\n", (char *)err);
 			write(2, buf, 100);
 			exit(EXIT_FAILURE);
 			break;
 	}
+}
+
+/**
+ * This function checks the entire archive for a given file name
+ *
+ * Param TAR_FD - This is the fd for the archive
+ * Param hdr - This is the only header struct being used in this program
+ * Param fileName - The file name to check against
+ * Return - This returns the status of whether a duplicate was found with the file num relative to the current header
+ */
+int checkfilename(const int TAR_FD, hdr *hdr, char *fileName) {
+    int hdrOffset = lseek(TAR_FD, 0, SEEK_SET);
+    read(TAR_FD, hdr, sizeof(*hdr));
+    short int nameSize = 0;
+    int givenSize = 0;
+    int max = 0;
+    while (1) {
+        for (int i = 0; hdr->file_name[i] && i < 4; i++) {
+            lseek(TAR_FD, hdr->file_name[i], SEEK_SET);
+            read(TAR_FD, &nameSize, 2);
+            max = nameSize;
+            char currName[nameSize + 1];
+            read(TAR_FD, currName, nameSize);
+            currName[nameSize] = 0;
+            givenSize = strlen(fileName);
+            if (givenSize > nameSize) {
+                max = givenSize;
+            }
+            if (!strncmp(fileName, currName, max) && !hdr->deleted[i]) {
+                lseek(TAR_FD, hdrOffset, SEEK_SET);     // Return the file pointer to the beginning of the needed header
+                return i;
+            }
+        }
+        if (hdr->next) {
+            hdrOffset = lseek(TAR_FD, hdr->next, SEEK_SET);
+            read(TAR_FD, hdr, sizeof(*hdr));
+        } else {
+            break;
+        }
+    }
+    return FNF;
+}
+
+/**
+ * This function will check what mode the program will execute in
+ *
+ * Param mode - This is the string that contains the mode arg
+ * Return - The function returns 1 if the mode is append and 0 if it is delete
+ */
+int checkmode(char mode) {
+    if (mode == 'a') {
+        return 1; 
+    } else {
+        return 0;
+    }
 }
 
 /**
@@ -63,7 +128,7 @@ void printerr(int code, void *err) {
 int verify(int argc, char **argv, hdr *hdr) {
     // Verify the args are correct
 	if (argc < 3
-		|| argv[1][0] != '-'
+        || argv[1][0] != '-'
 		|| (argv[1][1] != 'a' && argv[1][1] != 'd')
 		|| argv[1][2] != 0 
 	) {
@@ -71,9 +136,16 @@ int verify(int argc, char **argv, hdr *hdr) {
 	}
 
     // Verify no duplicate args in the given args
+    int max = 0;
+    int curr = 0;
     for (int i = 3; i < argc - 1; i++) {
-        for (int j = i; j < argc; j++) {
-            if (strcmp(argv[i], argv[j])) {
+        for (int j = i + 1; j < argc; j++) {
+            max = strlen(argv[i]);
+            curr = strlen(argv[j]);
+            if (curr > max) {
+                max = curr;
+            }
+            if (!strncmp(argv[i], argv[j], max)) {
                 printerr(ERROR_DUP, argv[i]);
             }
         }
@@ -83,30 +155,41 @@ int verify(int argc, char **argv, hdr *hdr) {
     int tarfd = open(argv[2], O_RDWR, 0644);
     if (tarfd == -1) {
         // file does not exist
-        printf("file does not already exist\n");
         tarfd = open(argv[2], O_RDWR | O_CREAT, 0644);
 
         // Init the first header in the new file.
-	    write(tarfd, &hdr, sizeof(hdr));
-	    hdr.eop = lseek(tarfd, 0, SEEK_END);
+	    write(tarfd, hdr, sizeof(*hdr));
+	    hdr->eop = lseek(tarfd, 0, SEEK_END);
 	    lseek(tarfd, 0, SEEK_SET);
-	    write(tarfd, &hdr, sizeof(hdr));
+	    write(tarfd, hdr, sizeof(*hdr));
     } else {
         // verify it is a valid archive
-        read(tarfd, &hdr, sizeof(hdr));
-        if (hdr.magic != MAGIC) {
-            printf("number read: %d\n", hdr.magic);
+        read(tarfd, hdr, sizeof(*hdr));
+        if (hdr->magic != MAGIC) {
             printerr(ERROR_TAR, argv[2]);
         }
-
-        // TODO - Make sure that there are no duplicates in the actual archive file already with the given args
+        
+        for (int i = 3; i < argc; i++) {
+            if (checkfilename(tarfd, hdr, argv[i]) != FNF) {
+                if (checkmode(argv[1][1])) {
+                    printerr(ERROR_DUP, argv[i]);
+                }
+            } else if (!checkmode(argv[1][1])) {
+                printerr(ERROR_DEL, argv[i]);
+            }
+        }
     }
 
-    return tmpfd
+    return tarfd;
 }
 
+/**
+ * This function resets the header to the default values
+ *
+ * Param hdr - This is a pointer to the only header struct being used in the program
+ */
 void resethdr(hdr *hdr) {
-	hdr->magic			= 0x63746172;
+	hdr->magic			= MAGIC;
     hdr->eop			= 0;
 	hdr->block_count	= 0;
     for (int i = 0; i < 4; i++) {
@@ -157,16 +240,16 @@ void writefile(char *file, hdr *hdr, int TAR_FD) {
 	}
     int bu;
     for (bu = 0; bu < 4; bu++) {
-        if (hdr->file_name[bu]) {
+        if (!hdr->file_name[bu]) {
             break;
         }
     }
-    printf("blocks used: %d\n", bu);
+    // printf("blocks used: %d\n", bu);
 
-    const int BLOCK_COUNT = hdr->block_count;
-	hdr->file_name[BLOCK_COUNT] = lseek(TAR_FD, 0, SEEK_END);
+    const int BLOCKS_USED = bu;
+	hdr->file_name[BLOCKS_USED] = lseek(TAR_FD, 0, SEEK_END);
     
-    const short int NAME_LEN = mystrlen(file);
+    const short int NAME_LEN = strlen(file);
 	write(TAR_FD, &NAME_LEN, 2);
 	write(TAR_FD, file, NAME_LEN);
 
@@ -177,29 +260,20 @@ void writefile(char *file, hdr *hdr, int TAR_FD) {
 		readCount = read(CURR_FD, writeBuf, BUF_LEN);
 	}
     const int END = lseek(TAR_FD, 0, SEEK_END);
-    int fileSize = END - hdr->file_name[BLOCK_COUNT];
-    hdr->file_size[BLOCK_COUNT] = fileSize;
+    struct stat statbuf;
+    fstat(CURR_FD, &statbuf);
+    int fileSize = statbuf.st_size;
+    hdr->file_size[BLOCKS_USED] = fileSize;
 	hdr->block_count++;
     lseek(TAR_FD, hdrOffset, SEEK_SET);
 	write(TAR_FD, hdr, sizeof(*hdr));
 
 	close(CURR_FD);
-/*
-    printf("curr hdr start: %d\n", hdrOffset);
-    printf("hdr magic: %d\n", hdr->magic);
-    printf("hdr eop: %d\n", hdr->eop);
-    printf("hdr block_count: %d\n", hdr->block_count);
-    printf("hdr file size: %d, %d, %d, %d\n", hdr->file_size[0], hdr->file_size[1], hdr->file_size[2], hdr->file_size[3]);
-    printf("hdr deleted: %d, %d, %d, %d\n", hdr->deleted[0], hdr->deleted[1], hdr->deleted[2], hdr->deleted[3]);
-    printf("hdr file name: %d, %d, %d, %d\n", hdr->file_name[0], hdr->file_name[1], hdr->file_name[2], hdr->file_name[3]);
-    printf("hdr next: %d\n", hdr->next);
-*/
-    if(hdr->block_count == 4) {
+
+    if(BLOCKS_USED == 3) {
         hdr->next = lseek(TAR_FD, 0, SEEK_END);
-        printf("NEW BLOCK hdr next: %d\n", hdr->next);
         lseek(TAR_FD, hdrOffset, SEEK_SET);
 	    write(TAR_FD, hdr, sizeof(*hdr));
-        //printf("------writing new block and offset = %d\n", hdrOffset);
         resethdr(hdr);
         lseek(TAR_FD, 0, SEEK_END);
         write(TAR_FD, hdr, sizeof(*hdr));
@@ -214,12 +288,16 @@ void writefile(char *file, hdr *hdr, int TAR_FD) {
         lseek(TAR_FD, 0, SEEK_SET);
 	    write(TAR_FD, hdr, sizeof(*hdr));
     }
+}
 
-	printf("Wrote file: %s - eop: %d\n-------------------------------------------------\n", file, hdr->eop);
+void deletefile(char *file, hdr *hdr, int TAR_FD) {
+    int fileNumber = checkfilename(TAR_FD, hdr, file);
+    hdr->deleted[fileNumber] = 1;
+    hdr->block_count--;
+    write(TAR_FD, hdr, sizeof(*hdr));
 }
 
 int main(int argc, char **argv) {
-
 
 	hdr hdr = {
 		.magic			= MAGIC,
@@ -231,22 +309,18 @@ int main(int argc, char **argv) {
 		.next			= 0
 	};
     
-    // Check to see if the archive file already exists, if it does verify magic number.
+	const int TAR_FD = verify(argc, argv, &hdr);
 
-    // TODO - check if the files to be inserted are already in the archive
+	if (checkmode(argv[1][1])) {
+        for (int i = 3; i < argc; i++) {
+            writefile(argv[i], &hdr, TAR_FD);
+        }
+    } else {
+        for (int i = 3; i < argc; i++) {
+            deletefile(argv[i], &hdr, TAR_FD);
+        }
+    }
     
-
-
-    // DO ALL ERROR CHECKING BEFORE HERE
-	
-	const int TAR_FD = tmpfd;
-	
-    // TMP RETURN HERE
-    return 0;
-	
-	for(int i = 3; i < argc; i++) {
-		writefile(argv[i], &hdr, TAR_FD);
-	}
-    
-	return 1;
+    close(TAR_FD);
+	return 0;
 }

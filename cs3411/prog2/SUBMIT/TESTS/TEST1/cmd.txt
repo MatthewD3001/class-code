@@ -1,0 +1,1 @@
+./ctar -a output.ctar spec.pdf test.txt 05-cat.png test1.txt test2.txt test3.txt; ./ctar -d output.ctar test1.txt test2.txt; mv output.ctar ./OUTPUT/; cd OUTPUT/; ./utar output.ctar
