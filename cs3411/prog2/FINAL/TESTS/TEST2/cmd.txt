@@ -1,0 +1,1 @@
+./ctar -- output.ctar; ./ctar -a- output.ctar; ./ctar -a output.ctar; ./utar output
