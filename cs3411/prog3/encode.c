@@ -6,106 +6,69 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define DICLEN 16
-#define TRUE 1
-#define FALSE 0
+#define DICLEN 15
 
-_Bool inDictionary(char dic[DICLEN], char cur) {
-    for (int i = 1; i < DICLEN; i++) {
-        if (cur == dic[i]) { return TRUE; }
+void shift(unsigned char dic[DICLEN], unsigned char byte, int index) {
+    if (index < DICLEN) {
+        unsigned char tmp = dic[index];
+        dic[index] = byte;
+        shift(dic, tmp, index + 1);
     }
-    return FALSE;
+    return;
 }
 
-void orgDictionary(char dic[DICLEN], int dicFreq[DICLEN], char insert, short int insertFreq) {
-    for (int i = 1; i < DICLEN; i++) {
-        if (!dic[i]) {
-            dic[i] = insert;
-            dicFreq[i] = insertFreq;
-            return;
-        } else if (insertFreq > dicFreq[i]) {
-            char cur = dic[i];
-            int curFreq = dicFreq[i];
-            dic[i] = insert;
-            dicFreq[i] = insertFreq;
-            for (int j = i + 1; j < DICLEN; j++) {
-                char tmp = dic[j];
-                int tmpFreq = dicFreq[j];
-                dic[j] = cur;
-                dicFreq[j] = curFreq;
-                cur = tmp;
-                curFreq = tmpFreq;
-            }
-            return;
-        } else if (insertFreq == dicFreq[i]) {
-            if (insert < dic[i]) {
-                char cur = dic[i];
-                int curFreq = dicFreq[i];
-                dic[i] = insert;
-                dicFreq[i] = insertFreq;
-                for (int j = i + 1; j < DICLEN; j++) {
-                    char tmp = dic[j];
-                    int tmpFreq = dicFreq[j];
-                    dic[j] = cur;
-                    dicFreq[j] = curFreq;
-                    cur = tmp;
-                    curFreq = tmpFreq;
-                }
-            } else {
-                for (int j = i + 1; j < DICLEN; j++) {
-                    if (insert < dic[j]) {
-                        char cur = dic[j];
-                        int curFreq = dicFreq[j];
-                        dic[j] = insert;
-                        dicFreq[j] = insertFreq;
-                        for (int k = j + 1; k < DICLEN; k++) {
-                            char tmp = dic[k];
-                            int tmpFreq = dicFreq[k];
-                            dic[k] = cur;
-                            dicFreq[k] = curFreq;
-                            cur = tmp;
-                            curFreq = tmpFreq;
+void makeDictionary(unsigned char dic[DICLEN], int freq[256]) {
+    unsigned char byte = 1;
+    do {
+        if (freq[byte] < 1) {
+            continue;
+        }
+        for (int i = 0; i < DICLEN; i++) {
+            if (!dic[i]) {
+                dic[i] = byte;
+                break;
+            } else if (freq[byte] > freq[dic[i]]) {
+                shift(dic, byte, i);
+                break;
+            } else if (freq[byte] == freq[dic[i]]) {
+                if (byte < dic[i]) {
+                    shift(dic, byte, i);
+                    break;
+                } else {
+                    for (int j = i + 1; j < DICLEN; j++) {
+                        if (!dic[j]) {
+                            dic[j] = byte;
+                            break;
                         }
-                        break;
+                        if (byte < dic[j]) {
+                            shift(dic, byte, j);
+                            break;
+                        }
                     }
+                    break;
                 }
             }
-            return;
         }
-    }
-}
-
-void makeDictionary(int FLEN, char dic[DICLEN]) {
-    int dicFreq[DICLEN] = {0};
-    char cur;
-    int curFreq;
-    char tmp;
-
-    for (int i = 1; i <= FLEN; i++) {
-        lseek(0, i - 1, SEEK_SET);
-        read(0, &cur, 1);
-        lseek(0, 0, SEEK_SET);
-        if (cur) {
-            if (!inDictionary(dic, cur)) {
-                curFreq = 1;
-                for (int j = 1; j < FLEN; j++) {
-                    read(0, &tmp, 1);
-                    if (cur == tmp && j != i) { curFreq++; }
-                }
-
-            }
-            printf("pass #%d, searching for %c, frequency counted: %d\n", i, cur, curFreq);
-            orgDictionary(dic, dicFreq, cur, curFreq);
-        }
-    }
+    } while (byte++ < 255);
+    return;
 }
 
 int main() {
-    char dic[DICLEN] = {0};
     struct stat file;
-    if (fstat(0, &file) == -1) {return 1;}
+    if (fstat(0, &file) == -1) { return 1; } // Make sure file is valid
 
-    makeDictionary(file.st_size, dic);
+    unsigned char dic[DICLEN] = {0};
+    int freq[256] = {0};
+    unsigned char cur_byte;
+    for (int i = 0; i < file.st_size; i++) {
+        read(0, &cur_byte, 1);
+        freq[cur_byte]++;
+    }
+    makeDictionary(dic, freq);
     write(1, dic, DICLEN);
+
+    // TODO Write the encoded file.
+
+
     return 0;
 }

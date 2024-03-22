@@ -1,9 +1,5 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#define DICLEN 15
 
 int read_byte() {
     unsigned char c;
@@ -102,52 +98,32 @@ int write_bit(int bit) {
     return 0;
 }
 
-void write_encoded() {
-    int count_bits[2] = {0};
-    count_bits[1] = read_bit();
-    count_bits[0] = read_bit();
-    int count += ((count_bits[1] * 2) + count_bits[0] + 1); // `count` now holds the number of the encoded byte to write.
-    
-    int index_bits[4] = {0};
-    index_bits[3] = read_bit();
-    index_bits[2] = read_bit();
-    index_bits[1] = read_bit();
-    index_bits[0] = read_bit();
-    int index = (index_bits[0] +
-                (2 * index_bits[1]) +
-                (4 * index_bits[2]) +
-                (8 * index_bits[3])
-                );
-    for (int i = 0; i <= count; i++) {
-        // TODO Write the byte in the dictionary at the indicated `index` `count` times.
-    }
-}
-
-void write_zero() {
-}
-
-void write_infrequent() {
-}
-
 int main() {
+    unsigned char c;
+    int byte_val;
+    int bitval;
 
-    unsigned char dic[DICLEN] = {0};
-    read(0, dic, DICLEN);
+    //while((byte_val = read_byte()) != 256) {
+    //    write_byte(byte_val);
+    //}
+    //write_byte(256);
 
-    int bit_read = read_bit();
-    while (bit_read != 2) {
-        if (bit_read) {
-            bit_read = read_bit();
-            if (bit_read) {
-                write_encoded();
-            } else {
-                write_zero();
-            }
-        } else {
-            write_infrequent();
-        }
-        bit_read = read_bit();
+    while((bitval = read_bit()) != 2) {
+        write_bit(bitval);
     }
-    // EOF
+    write_byte(256);
+
+    // assign bit value to bitval
+    /*for(int i = 7; i >= 0; i--) {
+        bitval = (c >> i) & 1;
+        printf("%d ", bitval);
+    }*/
+    //printf("\n");
+
+
+    /*
+    while(c = read_bit()) {
+        write_bit(c);
+    }*/
     return 0;
 }
