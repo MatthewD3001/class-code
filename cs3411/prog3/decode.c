@@ -102,31 +102,44 @@ int write_bit(int bit) {
     return 0;
 }
 
-void write_encoded() {
+void write_eof() {
+    printf("Reached the end of the file.\n");
+    // TODO implement eof writing.
+}
+
+void write_encoded(unsigned char dic[DICLEN]) {
     int count_bits[2] = {0};
     count_bits[1] = read_bit();
     count_bits[0] = read_bit();
-    int count += ((count_bits[1] * 2) + count_bits[0] + 1); // `count` now holds the number of the encoded byte to write.
+    int count = ((count_bits[1] * 2) + count_bits[0] + 1); // `count` now holds the number of the encoded byte to write.
     
     int index_bits[4] = {0};
     index_bits[3] = read_bit();
     index_bits[2] = read_bit();
     index_bits[1] = read_bit();
     index_bits[0] = read_bit();
-    int index = (index_bits[0] +
+    int index = ( index_bits[0] +     
                 (2 * index_bits[1]) +
                 (4 * index_bits[2]) +
-                (8 * index_bits[3])
+                (8 * index_bits[3]) - 1 // NOTE decrementing the index by one to account for dictionary offset and EOF condition.
                 );
+    if (index == -1) {
+        write_eof();
+        return;
+    }
+
     for (int i = 0; i <= count; i++) {
         // TODO Write the byte in the dictionary at the indicated `index` `count` times.
+        printf("Writing encoded byte: %c\n", dic[index]);
     }
 }
 
 void write_zero() {
+    printf("Writing zero byte.\n");
 }
 
 void write_infrequent() {
+    printf("Writing infrequent byte.\n");
 }
 
 int main() {
@@ -139,7 +152,7 @@ int main() {
         if (bit_read) {
             bit_read = read_bit();
             if (bit_read) {
-                write_encoded();
+                write_encoded(dic);
             } else {
                 write_zero();
             }
