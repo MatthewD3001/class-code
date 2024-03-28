@@ -1,0 +1,15 @@
+output.stderr
+output.stdout
+step1
+step1.c
+step2
+step2.c
+step3.c
+step4
+step4.c
+step5
+step5.c
+step6
+step6.c
+test.c
+transit
