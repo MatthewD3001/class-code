@@ -9,11 +9,6 @@ int main(int argc, char **argv) {
     close(1);
     char buf[strlen(argv[1]) + 7];
     buf[0] = 0;
-    /*
-    for (int i = 0; i < sizeof(buf); i++) {
-        buf[i] = 0;
-    }
-*/
     strcat(buf, argv[1]);
     open(strcat(buf, ".stdout"), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fork() == 0) {
