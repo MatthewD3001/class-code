@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
     int pipe_err[2];
     pipe(pipe_out);
     pipe(pipe_err);
+    
 
     /**
     * Child process!!!!!
@@ -60,38 +61,39 @@ int main(int argc, char **argv) {
     int status;
     unsigned char buf[BUFLEN] = {0};
     int read_count = 0;
-    struct timeval delay;
 
-    for (;;) {
-        fd_set in_fd;
-        FD_ZERO(&in_fd);
-        FD_SET(pipe_out[0], &in_fd);
-        FD_SET(pipe_err[0], &in_fd);
-        delay.tv_sec = 1;
-        status = select(pipe_err[1]+1, &in_fd, NULL, NULL, &delay);
-        if (status < 0) {
-            write(1, "Select error!\n", 14);
-            break;
-        }
-        if (status == 0) {
-            break;
-            // Timeout happened, no more input to be read.
-        }
-        if (status > 0 && FD_ISSET(pipe_out[0], &in_fd)) {
-            if (!out_fd) {
-                out_fd = open(strcat(out_buf, ".stdout"), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            }
+    fd_set in_fd;
+    FD_ZERO(&in_fd);
+    FD_SET(pipe_out[0], &in_fd);
+    FD_SET(pipe_err[0], &in_fd);
+    status = select(pipe_err[1]+1, &in_fd, NULL, NULL, NULL);
+    if (status < 0) {
+        write(1, "Select error!\n", 14);
+        exit(0);
+    }
+    if (status > 0 && FD_ISSET(pipe_out[0], &in_fd)) {
+        out_fd = open(strcat(out_buf, ".stdout"), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        fcntl(pipe_out[0], F_SETFL, O_NONBLOCK);
+        while (1) {
             read_count = read(pipe_out[0], buf, BUFLEN);
+            if (read_count <= 0) {
+                break;
+            }
             translate(1, read_count, buf);
             write(out_fd, buf, read_count);
         }
-        if (status > 0 && FD_ISSET(pipe_err[0], &in_fd)) {
-            if (!err_fd) {
-                err_fd = open(strcat(err_buf, ".stderr"), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            }
+    }
+    if (status > 0 && FD_ISSET(pipe_err[0], &in_fd)) {
+        err_fd = open(strcat(err_buf, ".stderr"), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        fcntl(pipe_err[0], F_SETFL, O_NONBLOCK);
+        while (1) {
             read_count = read(pipe_err[0], buf, BUFLEN);
+            if (read_count <= 0) {
+                break;
+            }
             translate(2, read_count, buf);
             write(err_fd, buf, read_count);
         }
     }
+    return 0;
 }

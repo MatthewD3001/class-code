@@ -21,10 +21,11 @@ int main() {
         delay.tv_usec = 0;
         status = select(pipe_fd+1, &in_fd, NULL, NULL, &delay);
         if (status < 0) {
-            printf("Select error!\n");
+            write(1, "Select error!\n", 14);
             exit(0);
         }
         if (status == 0) {
+            write(1, "tick\n", 5);
             printf("tick\n");
         }
         if (status > 0 && FD_ISSET(0, &in_fd)) {
