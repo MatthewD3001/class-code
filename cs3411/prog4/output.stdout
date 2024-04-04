@@ -1,0 +1,16 @@
+total 92
+drwxr-xr-x  2 buta buta  4096 Apr  3 21:16 .
+drwxr-xr-x 11 buta buta  4096 Apr  3 18:22 ..
+-rw-r--r--  1 buta buta   819 Apr  3 18:22 Makefile
+-rw-r--r--  1 buta buta  2673 Apr  3 18:22 README.md
+-rwxr-xr-x  1 buta buta 16584 Apr  3 21:16 prose
+-rw-r--r--  1 buta buta  2412 Apr  3 21:16 prose.c
+-rw-r--r--  1 buta buta  5064 Apr  3 21:16 prose.o
+-rw-r--r--  1 buta buta   408 Mar 31 23:26 step1.c
+-rw-r--r--  1 buta buta   385 Mar 31 23:33 step2.c
+-rw-r--r--  1 buta buta   763 Mar 27 19:18 step3.c
+-rw-r--r--  1 buta buta   699 Mar 27 19:23 step4.c
+-rw-r--r--  1 buta buta  1042 Apr  1 14:36 step5.c
+-rw-r--r--  1 buta buta  1868 Mar 27 20:01 step6.c
+-rw-r--r--  1 buta buta 16624 Apr  3 14:53 test_file
+prw-r--r--  1 buta buta     0 Mar 27 19:45 transit

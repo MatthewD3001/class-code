@@ -48,6 +48,8 @@ int main(int argc, char **argv) {
         close(pipe_err[1]);
         execvp(argv[2], &argv[2]);
     }
+    close(pipe_out[1]);
+    close(pipe_err[1]);
 
     char out_buf[strlen(argv[1]) + 7];
     char err_buf[strlen(argv[1]) + 7];
@@ -73,7 +75,6 @@ int main(int argc, char **argv) {
     }
     if (status > 0 && FD_ISSET(pipe_out[0], &in_fd)) {
         out_fd = open(strcat(out_buf, ".stdout"), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-        fcntl(pipe_out[0], F_SETFL, O_NONBLOCK);
         while (1) {
             read_count = read(pipe_out[0], buf, BUFLEN);
             if (read_count <= 0) {
@@ -85,7 +86,6 @@ int main(int argc, char **argv) {
     }
     if (status > 0 && FD_ISSET(pipe_err[0], &in_fd)) {
         err_fd = open(strcat(err_buf, ".stderr"), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-        fcntl(pipe_err[0], F_SETFL, O_NONBLOCK);
         while (1) {
             read_count = read(pipe_err[0], buf, BUFLEN);
             if (read_count <= 0) {
