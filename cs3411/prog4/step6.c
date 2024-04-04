@@ -55,7 +55,6 @@ int main(int argc, char **argv) {
         if (status == 0) {
             printf("timeout!\n");
             break;
-            // Timeout happened, stop child process??????
         }
         if (status > 0 && FD_ISSET(pipe_out[0], &in_fd)) {
             read_count = read(pipe_out[0], buf, 256);

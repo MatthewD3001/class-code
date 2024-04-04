@@ -32,7 +32,7 @@ int isPrintable(unsigned char c) {
  * Param: len The length of the buffer to translate. NOTE: Do not exceed BUFLEN
  */
 void translate(int fd, unsigned char buf[BUFLEN], int len) {
-    char hex[5]; // 4 + 1 for null byte of sprintf
+    char hex[5];                        // 4 + 1 for null byte of sprintf
     for (int i = 0; i < len; i++) {
         if (isPrintable(buf[i])) {
             write(fd, &buf[i], 1);
@@ -52,8 +52,8 @@ int main(int argc, char **argv) {
     if (fork() == 0) {                  // Begin child process
         close(1);                       // Close the child's stdout and stderr
         close(2);
-        dup2(pipe_out[1], 1);           // Duplicate the corresponding pipe write ends to child's stdout and stderr
-        dup2(pipe_err[1], 2);
+        dup(pipe_out[1]);           // Duplicate the corresponding pipe write ends to child's stdout and stderr
+        dup(pipe_err[1]);
         close(pipe_out[1]);             // Close the uneeded pipe fds
         close(pipe_err[1]);
         execvp(argv[2], &argv[2]);      // Begin given command
@@ -78,10 +78,9 @@ int main(int argc, char **argv) {
         FD_SET(pipe_out[0], &in_fd);                                // Insert the read ends of the pipe to the set
         FD_SET(pipe_err[0], &in_fd);
         status = select(pipe_err[0]+1, &in_fd, NULL, NULL, NULL);   // Wait for set fds to be readable, waiting for child to output something
-        printf("out ISSET: %d\nerr ISSET: %d\n", FD_ISSET(pipe_out[0], &in_fd), FD_ISSET(pipe_err[0], &in_fd));
         if (status < 0) {
             write(1, "Select error!\n", 14);
-            exit(0);
+            exit(EXIT_FAILURE);
         }
         if (status > 0 && FD_ISSET(pipe_out[0], &in_fd)) {          // If something is readable and the stdout pipe is still in the set, print 256 bytes from this pipe
             rc_out = read(pipe_out[0], buf, BUFLEN);
@@ -90,7 +89,7 @@ int main(int argc, char **argv) {
                     sprintf(out_name, "%s.stdout", argv[1]);
                     out_fd = open(out_name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
                 }
-                //translate(1, buf, rc_out);
+                translate(1, buf, rc_out);
                 write(out_fd, buf, rc_out);
             }
         }
@@ -101,7 +100,7 @@ int main(int argc, char **argv) {
                     sprintf(err_name, "%s.stderr", argv[1]);
                     err_fd = open(err_name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
                 }
-                //translate(2, buf, rc_err);
+                translate(2, buf, rc_err);
                 write(err_fd, buf, rc_err);
             }
         }
