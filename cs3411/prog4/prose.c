@@ -78,6 +78,7 @@ int main(int argc, char **argv) {
         FD_SET(pipe_out[0], &in_fd);                                // Insert the read ends of the pipe to the set
         FD_SET(pipe_err[0], &in_fd);
         status = select(pipe_err[0]+1, &in_fd, NULL, NULL, NULL);   // Wait for set fds to be readable, waiting for child to output something
+        printf("out ISSET: %d\nerr ISSET: %d\n", FD_ISSET(pipe_out[0], &in_fd), FD_ISSET(pipe_err[0], &in_fd));
         if (status < 0) {
             write(1, "Select error!\n", 14);
             exit(0);
@@ -89,7 +90,7 @@ int main(int argc, char **argv) {
                     sprintf(out_name, "%s.stdout", argv[1]);
                     out_fd = open(out_name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
                 }
-                translate(1, buf, rc_out);
+                //translate(1, buf, rc_out);
                 write(out_fd, buf, rc_out);
             }
         }
@@ -100,7 +101,7 @@ int main(int argc, char **argv) {
                     sprintf(err_name, "%s.stderr", argv[1]);
                     err_fd = open(err_name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
                 }
-                translate(2, buf, rc_err);
+                //translate(2, buf, rc_err);
                 write(err_fd, buf, rc_err);
             }
         }
