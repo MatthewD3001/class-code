@@ -18,6 +18,4 @@ int main() {
     int length = sizeof(addr);
     getsockname(server_socket, (struct sockaddr *) &addr, (socklen_t *) &length);
     printf("Socket assigned to port: %d\n", ntohs(addr.sin_port));
-
-
 }
