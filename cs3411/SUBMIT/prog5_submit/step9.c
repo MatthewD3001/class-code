@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <sys/select.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define BUFLEN 128
 #define NOT_CONNECTED 0
@@ -55,28 +57,31 @@ void add_connection(int connection, struct socket sockets[32]) {
 }
 
 
-void parse_command(struct socket sockets[32], int index, char buf[BUFLEN], int readlen) {
+void parse_command(struct socket sockets[32], int index, int log_file, char buf[BUFLEN], int readlen) {
     char msg[128] = { 0 };
     int conn_fd = sockets[index].fd;
-    if (strncmp(buf, "log\r\n", sizeof("log\r\n")) == 0) {
+    if (strncmp(buf, "log ", strlen("log ")) == 0) {
         sprintf(msg, "#log: logging\n");
-        write(conn_fd, msg, sizeof(msg));
-    } else if (strncmp(buf, "list\r\n", sizeof("list\r\n")) == 0) {
+        write(conn_fd, msg, strlen(msg));
+        for (int i = 4; i < readlen - 2; i++) {
+            write(log_file, &buf[i], 1);
+        }
+        write(log_file, "\n", 1);
+    } else if (strncmp(buf, "list\r\n", strlen("list\r\n")) == 0) {
         sprintf(msg, "#log: listing\n");
-        write(conn_fd, msg, sizeof(msg));
+        write(conn_fd, msg, strlen(msg));
         sockets[index].status = LISTING;
-    } else if (strncmp(buf, "\r\n", sizeof("\r\n")) == 0 && sockets[index].status == LISTING) {
+    } else if (strncmp(buf, "\r\n", strlen("\r\n")) == 0 && sockets[index].status == LISTING) {
         sprintf(msg, "#log: more\n");
-        write(conn_fd, msg, sizeof(msg));
+        write(conn_fd, msg, strlen(msg));
     } else {
         sprintf(msg, "#log: Command not recognized\n");
-        write(conn_fd, msg, sizeof(msg));
+        write(conn_fd, msg, strlen(msg));
     }
     print_sockets(sockets);
 }
 
 int main() {
-
 
     // Make the array for connections using the struct
     struct socket sockets[32];
@@ -104,10 +109,10 @@ int main() {
     char msg[128] = { 0 };
     sprintf(msg, "Socket assigned to port: %d\n", ntohs(addr.sin_port));
     write(1, msg, sizeof(msg));
-
     listen(server_socket, 32);
 
-    
+    int log_file = open("log_file", O_WRONLY | O_TRUNC | O_CREAT, 0644);
+
     fd_set readfds;
 
     while(1) {
@@ -134,10 +139,7 @@ int main() {
         if (status > 0) {
             char buf[BUFLEN] = {0};
             int readlen = 0;
-            if (FD_ISSET(0, &readfds)) {
-                readlen = read(0, buf, BUFLEN);
-                write(1, buf, readlen);
-            }
+            // Check if any other connections are trying to be made
             if (FD_ISSET(server_socket, &readfds)) {
                 struct sockaddr_in connect_addr = { 0 };
                 int length_connect = sizeof(connect_addr);
@@ -161,7 +163,7 @@ int main() {
                             print_sockets(sockets);
                             break;
                         }
-                        parse_command(sockets, i, buf, readlen);
+                        parse_command(sockets, i, log_file, buf, readlen);
                         write(conn_fd, "log #: ", sizeof("log #: "));
                     }
                 } else {
